@@ -42,7 +42,7 @@ pipeline {
                 script {
                     // Wait for SonarQube analysis to complete and check the Quality Gate status
                     timeout(time: 1, unit: 'HOURS') {
-                        waitForQualityGate() // Ensures the build fails if the Quality Gate is not passed
+                        waitForQualityGate() // Ensures the build fails if the Quality Gate is not passe
                     }
                 }
             }
