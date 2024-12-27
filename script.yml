@@ -1,0 +1,58 @@
+pipeline {
+    agent any
+
+    tools {
+        jdk 'jdk11'
+        maven 'sonarmaven'
+    }
+
+    environment {
+        SONARQUBE_SERVER = 'sonar-cube' // Name of the SonarQube server in Jenkins
+        SONARQUBE_TOKEN = credentials('sqp_030c709283c3d9f38f0969989c331e642b0e988f') // SonarQube token added in Jenkins credentials
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'mvn clean package'
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('SonarQube_Server') {
+                    sh 'mvn sonar:sonar -Dsonar.projectKey=my-java-project -Dsonar.login=$SONARQUBE_TOKEN'
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 1, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            archiveArtifacts artifacts: '/target/*.jar', allowEmptyArchive: true
+            cleanWs()
+        }
+
+        failure {
+            echo 'Build failed!'
+        }
+
+        success {
+            echo 'Build and SonarQube analysis successful!'
+        }
+    }
+}
