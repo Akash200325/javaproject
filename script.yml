@@ -2,31 +2,35 @@ pipeline {
     agent any
 
     tools {
-        jdk 'jdk11'
-        maven 'sonarmaven'
+        jdk 'jdk11'             // Ensure you have JDK 11 installed in Jenkins
+        maven 'sonarmaven'      // Ensure Maven is configured in Jenkins (maven tool setup)
     }
 
     environment {
-        SONARQUBE_SERVER = 'sonar-cube' // Name of the SonarQube server in Jenkins
+        SONARQUBE_SERVER = 'sonar-cube'  // Name of the SonarQube server configured in Jenkins
         SONARQUBE_TOKEN = credentials('sqp_030c709283c3d9f38f0969989c331e642b0e988f') // SonarQube token added in Jenkins credentials
     }
 
     stages {
         stage('Checkout') {
             steps {
+                // Checkout the source code from Git repository
                 checkout scm
             }
         }
 
         stage('Build') {
             steps {
+                // Run Maven build to compile and package the project
                 sh 'mvn clean package'
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('SonarQube_Server') {
+                // Perform SonarQube analysis
+                withSonarQubeEnv(SONARQUBE_SERVER) {
+                    // Run SonarQube scanner with project key and login credentials
                     sh 'mvn sonar:sonar -Dsonar.projectKey=my-java-project -Dsonar.login=$SONARQUBE_TOKEN'
                 }
             }
@@ -34,6 +38,7 @@ pipeline {
 
         stage('Quality Gate') {
             steps {
+                // Wait for SonarQube analysis to complete and check the quality gate result
                 timeout(time: 1, unit: 'MINUTES') {
                     waitForQualityGate abortPipeline: true
                 }
@@ -43,7 +48,9 @@ pipeline {
 
     post {
         always {
-            archiveArtifacts artifacts: '/target/*.jar', allowEmptyArchive: true
+            // Archive build artifacts (e.g., JAR files) for further reference
+            archiveArtifacts artifacts: 'target/*.jar', allowEmptyArchive: true
+            // Clean up workspace after build
             cleanWs()
         }
 
