@@ -2,56 +2,46 @@ pipeline {
     agent any
 
     environment {
-        // Replace 'SonarQube' with the name of your SonarQube server configuration in Jenkins
+        // SonarQube server settings
         SONARQUBE_URL = 'http://localhost:9000'
-        SONARQUBE_TOKEN = credentials('sonar-token') // Your stored SonarQube token in Jenkins
+        
+        // Global token for SonarQube authentication
+        GLOBAL_SONAR_TOKEN = credentials('sonar-token') // Replace with the global token ID in Jenkins
+        
+        // Project-specific token (hardcoded for this example)
+        PROJECT_SONAR_TOKEN = 'sqp_c2d9b85b64d0d7a94a1baafd173d3b38c3efc624' // Replace with your project token
     }
 
     stages {
         stage('Checkout') {
             steps {
-                echo 'Checking out the code...'
-                checkout scm
+                git branch: 'main', url: 'https://github.com/Akash200325/javaproject'
             }
         }
-
         stage('Build') {
             steps {
-                echo 'Building the project...'
-                sh 'mvn clean verify'
+                sh 'mvn clean install'
             }
         }
-
         stage('SonarQube Analysis') {
             steps {
                 script {
-                    // Run SonarQube analysis using Maven
-                    withSonarQubeEnv('SonarQube') {
-                        sh '''
+                    withSonarQubeEnv('SonarQube') { // Refers to the global SonarQube server configuration in Jenkins
+                        sh """
                         mvn sonar:sonar \
-                        -Dsonar.projectKey=mavenjenkines \
-                        -Dsonar.projectName="mavenjenkines" \
-                        -Dsonar.host.url=${SONARQUBE_URL} \
-                        -Dsonar.login=${SONARQUBE_TOKEN}
-                        '''
+                            -Dsonar.projectKey=mavenjenkines \
+                            -Dsonar.projectName='mavenjenkines' \
+                            -Dsonar.host.url=${SONARQUBE_URL} \
+                            -Dsonar.login=${PROJECT_SONAR_TOKEN} // Use project-specific token for analysis
+                        """
                     }
                 }
             }
         }
-
         stage('Quality Gate') {
             steps {
-                timeout(time: 5, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
-                }
+                waitForQualityGate abortPipeline: true
             }
-        }
-    }
-
-    post {
-        always {
-            echo 'Cleaning up...'
-            cleanWs()
         }
     }
 }
