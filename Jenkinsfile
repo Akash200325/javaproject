@@ -2,23 +2,23 @@ pipeline {
     agent any
 
     environment {
-        SONARQUBE_URL = 'http://localhost:9000'          // SonarQube server running locally
-        SONARQUBE_TOKEN = credentials('sonar-token')      // SonarQube token stored as Jenkins credential
+        // Replace 'SonarQube' with the name of your SonarQube server configuration in Jenkins
+        SONARQUBE_URL = 'http://localhost:9000'
+        SONARQUBE_TOKEN = credentials('sonar-token') // Your stored SonarQube token in Jenkins
     }
 
     stages {
         stage('Checkout') {
             steps {
+                echo 'Checking out the code...'
                 checkout scm
             }
         }
 
         stage('Build') {
             steps {
-                script {
-                    // Run Maven build (this includes compiling and testing)
-                    sh 'mvn clean verify'
-                }
+                echo 'Building the project...'
+                sh 'mvn clean verify'
             }
         }
 
@@ -27,11 +27,13 @@ pipeline {
                 script {
                     // Run SonarQube analysis using Maven
                     withSonarQubeEnv('SonarQube') {
-                        sh '''mvn sonar:sonar \
-                            -Dsonar.projectKey=mavenjenkines \
-                            -Dsonar.projectName="mavenjenkines" \
-                            -Dsonar.host.url=${SONARQUBE_URL} \
-                            -Dsonar.login=${SONARQUBE_TOKEN}'''
+                        sh '''
+                        mvn sonar:sonar \
+                        -Dsonar.projectKey=mavenjenkines \
+                        -Dsonar.projectName="mavenjenkines" \
+                        -Dsonar.host.url=${SONARQUBE_URL} \
+                        -Dsonar.login=${SONARQUBE_TOKEN}
+                        '''
                     }
                 }
             }
@@ -39,11 +41,8 @@ pipeline {
 
         stage('Quality Gate') {
             steps {
-                script {
-                    // Wait for SonarQube analysis to complete and check the Quality Gate status
-                    timeout(time: 1, unit: 'HOURS') {
-                        waitForQualityGate() // Ensures the build fails if the Quality Gate is not passe
-                    }
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
                 }
             }
         }
@@ -51,13 +50,8 @@ pipeline {
 
     post {
         always {
-            cleanWs() // Clean workspace after build
-        }
-        success {
-            echo 'Build and SonarQube analysis successful!'
-        }
-        failure {
-            echo 'Build or SonarQube analysis failed!'
+            echo 'Cleaning up...'
+            cleanWs()
         }
     }
 }
