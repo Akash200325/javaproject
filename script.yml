@@ -2,43 +2,44 @@ pipeline {
     agent any
 
     tools {
-        jdk 'jdk11'             // Ensure you have JDK 11 installed in Jenkins
-        maven 'sonarmaven'      // Ensure Maven is configured in Jenkins (maven tool setup)
+        jdk 'jdk11'                // Use JDK 11 or any version needed for your build
+        sonar 'sonar-cube'          // SonarScanner for MSBuild, make sure the name matches the one in Global Tool Configuration
     }
 
     environment {
-        SONARQUBE_SERVER = 'sonar-cube'  // Name of the SonarQube server configured in Jenkins
+        SONARQUBE_SERVER = 'sonar-cube'  // SonarQube server name configured in Jenkins
         SONARQUBE_TOKEN = credentials('sqp_030c709283c3d9f38f0969989c331e642b0e988f') // SonarQube token added in Jenkins credentials
     }
 
     stages {
         stage('Checkout') {
             steps {
-                // Checkout the source code from Git repository
+                // Checkout the source code from the repository
                 checkout scm
             }
         }
 
         stage('Build') {
             steps {
-                // Run Maven build to compile and package the project
-                sh 'mvn clean package'
+                // Run the MSBuild build command
+                sh 'dotnet build'
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
-                // Perform SonarQube analysis
-                withSonarQubeEnv(SONARQUBE_SERVER) {
-                    // Run SonarQube scanner with project key and login credentials
-                    sh 'mvn sonar:sonar -Dsonar.projectKey=my-java-project -Dsonar.login=$SONARQUBE_TOKEN'
+                // Run SonarQube analysis using SonarScanner for MSBuild
+                withSonarQubeEnv('sonar-cube') {
+                    sh 'dotnet sonarscanner begin /k:"my-dotnet-project" /d:sonar.login=$SONARQUBE_TOKEN'
+                    sh 'dotnet build'
+                    sh 'dotnet sonarscanner end /d:sonar.login=$SONARQUBE_TOKEN'
                 }
             }
         }
 
         stage('Quality Gate') {
             steps {
-                // Wait for SonarQube analysis to complete and check the quality gate result
+                // Wait for SonarQube quality gate to pass
                 timeout(time: 1, unit: 'MINUTES') {
                     waitForQualityGate abortPipeline: true
                 }
@@ -48,9 +49,7 @@ pipeline {
 
     post {
         always {
-            // Archive build artifacts (e.g., JAR files) for further reference
-            archiveArtifacts artifacts: 'target/*.jar', allowEmptyArchive: true
-            // Clean up workspace after build
+            // Clean workspace after build
             cleanWs()
         }
 
