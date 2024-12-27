@@ -1,47 +1,67 @@
 pipeline {
     agent any
 
+    tools {
+        jdk 'jdk11'                // Use JDK 11 or the version you need
+        sonar 'sonar-scanner'       // SonarQube Scanner name configured in Jenkins
+    }
+
     environment {
-        // SonarQube server settings
-        SONARQUBE_URL = 'http://localhost:9000'
-        
-        // Global token for SonarQube authentication
-        GLOBAL_SONAR_TOKEN = credentials('sonar-token') // Replace with the global token ID in Jenkins
-        
-        // Project-specific token (hardcoded for this example)
-        PROJECT_SONAR_TOKEN = 'sqp_c2d9b85b64d0d7a94a1baafd173d3b38c3efc624' // Replace with your project token
+        SONARQUBE_SERVER = 'sonar-cube'  // The name of your SonarQube server in Jenkins
+        SONARQUBE_TOKEN = credentials('sonar-token') // Reference the SonarQube token stored in Jenkins credentials
     }
 
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/Akash200325/javaproject'
+                checkout scm  // Checkout the source code from the repository
             }
         }
+
         stage('Build') {
             steps {
+                // Run the Maven build command
                 sh 'mvn clean install'
             }
         }
+
         stage('SonarQube Analysis') {
             steps {
-                script {
-                    withSonarQubeEnv('SonarQube') { // Refers to the global SonarQube server configuration in Jenkins
-                        sh """
-                        mvn sonar:sonar \
-                            -Dsonar.projectKey=mavenjenkines \
-                            -Dsonar.projectName='mavenjenkines' \
-                            -Dsonar.host.url=${SONARQUBE_URL} \
-                            -Dsonar.login=${PROJECT_SONAR_TOKEN} // Use project-specific token for analysis
-                        """
-                    }
+                withSonarQubeEnv('sonar-cube') {  // Use SonarQube environment configured in Jenkins
+                    // Run the SonarQube analysis with the token
+                    sh """
+                        mvn clean verify sonar:sonar \
+                          -Dsonar.projectKey=mavenjenkines \
+                          -Dsonar.projectName='mavenjenkines' \
+                          -Dsonar.host.url=http://localhost:9000 \
+                          -Dsonar.login=$SONARQUBE_TOKEN
+                    """
                 }
             }
         }
+
         stage('Quality Gate') {
             steps {
-                waitForQualityGate abortPipeline: true
+                // Wait for the SonarQube Quality Gate to pass
+                timeout(time: 1, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
             }
+        }
+    }
+
+    post {
+        always {
+            // Clean workspace after build
+            cleanWs()
+        }
+
+        failure {
+            echo 'Build failed!'
+        }
+
+        success {
+            echo 'Build and SonarQube analysis successful!'
         }
     }
 }
