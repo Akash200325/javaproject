@@ -1,67 +1,57 @@
 pipeline {
     agent any
 
-    tools {
-        jdk 'jdk11'                // Use JDK 11 or the version you need
-        sonar 'sonar-scanner'       // SonarQube Scanner name configured in Jenkins
-    }
-
     environment {
-        SONARQUBE_SERVER = 'sonar-cube'  // The name of your SonarQube server in Jenkins
-        SONARQUBE_TOKEN = credentials('sonar-token') // Reference the SonarQube token stored in Jenkins credentials
+        // Load SonarQube token from Jenkins credentials
+        SONAR_TOKEN = credentials('sonar-token')
     }
 
     stages {
-        stage('Checkout') {
+        stage('Checkout Code') {
             steps {
-                checkout scm  // Checkout the source code from the repository
+                // Pull the code from your Git repository
+                git branch: 'main',
+                    url: 'https://github.com/Akash200325/javaproject'
             }
         }
 
         stage('Build') {
             steps {
-                // Run the Maven build command
+                // Clean and build the project
                 sh 'mvn clean install'
+            }
+        }
+
+        stage('Run Tests') {
+            steps {
+                // Run unit tests
+                sh 'mvn test'
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('sonar-cube') {  // Use SonarQube environment configured in Jenkins
-                    // Run the SonarQube analysis with the token
-                    sh """
-                        mvn clean verify sonar:sonar \
-                          -Dsonar.projectKey=mavenjenkines \
-                          -Dsonar.projectName='mavenjenkines' \
-                          -Dsonar.host.url=http://localhost:9000 \
-                          -Dsonar.login=$SONARQUBE_TOKEN
-                    """
-                }
-            }
-        }
-
-        stage('Quality Gate') {
-            steps {
-                // Wait for the SonarQube Quality Gate to pass
-                timeout(time: 1, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
-                }
+                // Run SonarQube analysis
+                sh '''
+                mvn sonar:sonar \
+                    -Dsonar.projectKey=mavenworldline \
+                    -Dsonar.projectName="mavenworldline" \
+                    -Dsonar.host.url=http://localhost:9000 \
+                    -Dsonar.login=${SONAR_TOKEN}
+                '''
             }
         }
     }
 
     post {
         always {
-            // Clean workspace after build
-            cleanWs()
+            echo 'Pipeline execution completed.'
         }
-
-        failure {
-            echo 'Build failed!'
-        }
-
         success {
-            echo 'Build and SonarQube analysis successful!'
+            echo 'Pipeline executed successfully!'
+        }
+        failure {
+            echo 'Pipeline failed.'
         }
     }
 }
