@@ -1,57 +1,58 @@
 pipeline {
     agent any
 
+    tools {
+        maven 'Maven_3.8.1' // Adjust to your Maven installation
+        jdk 'Java_11' // Adjust to your JDK installation
+    }
+
     environment {
-        // Load SonarQube token from Jenkins credentials
-        SONAR_TOKEN = credentials('sonar-token')
+        SONAR_HOST_URL = 'http://localhost:9000'
+        SONAR_AUTH_TOKEN = 'your_sonar_token'
     }
 
     stages {
-        stage('Checkout Code') {
+        stage('Checkout') {
             steps {
-                // Pull the code from your Git repository
-                git branch: 'main',
-                    url: 'https://github.com/Akash200325/javaproject'
+                git 'https://github.com/your-repo/your-project.git'
             }
         }
 
         stage('Build') {
             steps {
-                // Clean and build the project
-                sh 'mvn clean install'
+                sh 'mvn clean package'
             }
         }
 
-        stage('Run Tests') {
+        stage('Code Analysis') {
             steps {
-                // Run unit tests
+                sh '''
+                mvn sonar:sonar \
+                    -Dsonar.projectKey=your-project-key \
+                    -Dsonar.host.url=$SONAR_HOST_URL \
+                    -Dsonar.login=$SONAR_AUTH_TOKEN
+                '''
+            }
+        }
+
+        stage('Test') {
+            steps {
                 sh 'mvn test'
             }
         }
 
-        stage('SonarQube Analysis') {
+        stage('Deploy') {
             steps {
-                // Run SonarQube analysis
-                sh '''
-                mvn sonar:sonar \
-                    -Dsonar.projectKey=mavenworldline \
-                    -Dsonar.projectName="mavenworldline" \
-                    -Dsonar.host.url=http://localhost:9000 \
-                    -Dsonar.login=${SONAR_TOKEN}
-                '''
+                echo 'Deploying application...'
+                // Add deployment commands here
             }
         }
     }
 
     post {
         always {
-            echo 'Pipeline execution completed.'
-        }
-        success {
-            echo 'Pipeline executed successfully!'
-        }
-        failure {
-            echo 'Pipeline failed.'
+            junit '**/target/surefire-reports/*.xml'
+            archiveArtifacts artifacts: '**/target/*.jar', allowEmptyArchive: true
         }
     }
 }
