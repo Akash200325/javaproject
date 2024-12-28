@@ -6,29 +6,16 @@
 
     <!-- Project Information -->
     <groupId>com.example</groupId>
-    <artifactId>mavenjenkines</artifactId>
+    <artifactId>mavenworldline</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
-    <!-- Maven Repositories -->
-    <repositories>
-        <repository>
-            <id>central</id>
-            <url>https://repo.maven.apache.org/maven2</url>
-        </repository>
-    </repositories>
-
     <!-- Dependencies -->
     <dependencies>
-        <!-- Add your project dependencies here -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-            <version>2.6.0</version>
-        </dependency>
+        <!-- Add project-specific dependencies here -->
     </dependencies>
 
-    <!-- Plugins -->
+    <!-- Build Configuration -->
     <build>
         <plugins>
             <!-- SonarQube Plugin -->
@@ -38,14 +25,14 @@
                 <version>3.9.0.2155</version>
             </plugin>
 
-            <!-- Maven Compiler Plugin to specify JDK version -->
+            <!-- Maven Compiler Plugin -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.8.1</version>
                 <configuration>
-                    <source>1.8</source> <!-- Specify Java version -->
-                    <target>1.8</target> <!-- Specify Java version -->
+                    <source>11</source> <!-- Specify your Java source version -->
+                    <target>11</target> <!-- Specify your Java target version -->
                 </configuration>
             </plugin>
         </plugins>
@@ -53,8 +40,9 @@
 
     <!-- SonarQube Properties -->
     <properties>
-        <!-- SonarQube Properties -->
-        <sonar.host.url>http://localhost:9000</sonar.host.url> <!-- SonarQube Server URL -->
-        <sonar.login>${env.SONARQUBE_TOKEN}</sonar.login> <!-- Token for SonarQube authentication -->
+        <sonar.projectKey>mavenworldline</sonar.projectKey>
+        <sonar.projectName>mavenworldline</sonar.projectName>
+        <sonar.host.url>http://localhost:9000</sonar.host.url>
+        <sonar.login>${env.SONAR_TOKEN}</sonar.login> <!-- Use environment variable for token -->
     </properties>
 </project>
